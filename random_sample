@@ -1,0 +1,89 @@
+# This defines a small helper function that installs a package if it's missing, then loads it.
+use_pkg <- function(pkg) {
+  if (!requireNamespace(pkg, quietly = TRUE)) install.packages(pkg)
+  library(pkg, character.only = TRUE)
+}
+
+# Load dplyr for data manipulation.
+use_pkg("dplyr")
+
+# Load ggplot2 for plotting.
+use_pkg("ggplot2")
+
+
+# --- Step 1: Create a mock transaction dataset (the "population") ---
+
+# Set a seed so that random numbers are reproducible. Running the script again yields the same results.
+set.seed(123)
+
+# Create a data frame with 1,000 transactions. Each has an id, amount, and category.
+transactions <- data.frame(
+  id = 1:1000,                                                   # Unique identifier for each transaction (1 to 1000).
+  amount = round(rnorm(1000, mean = 100, sd = 20), 2),           # Random amounts ~ Normal(100, 20); rounded to 2 decimals.
+  category = sample(                                             # Random category assignment for each transaction.
+    c("Loans", "Insurance", "Rent", "Restaurants", "Entertainment"),
+    size = 1000,
+    replace = TRUE
+  )
+)
+
+# Preview the first 6 rows to confirm structure and values.
+head(transactions)
+
+
+# --- Step 2: Draw a random sample from the population ---
+
+# Define the sample size (how many transactions you want to test). Adjust as needed.
+sample_size <- 50
+
+# Randomly select 'sample_size' row indices from the full dataset (without replacement).
+sample_indices <- sample(1:nrow(transactions), size = sample_size)
+
+# Subset the full dataset to the sampled rows, producing the sample you'll analyze.
+sample_transactions <- transactions[sample_indices, ]
+
+# Preview the first 6 rows of the sample to sanity-check the selection.
+head(sample_transactions)
+
+
+# --- Step 3: Compute summary statistics by category on the sample ---
+
+# Use dplyr to group the sample by category and compute metrics for each group.
+summary_stats <- sample_transactions %>%
+  dplyr::group_by(category) %>%                                  # Group rows by category.
+  dplyr::summarise(                                              # Compute summary metrics per category.
+    avg_amount = mean(amount),                                   # Average amount (benchmarking).
+    max_amount = max(amount),                                    # Maximum amount (outlier detection).
+    min_amount = min(amount),                                    # Minimum amount.
+    count = dplyr::n()                                           # Number of sampled transactions in the category.
+  ) %>%
+  dplyr::arrange(category)                                       #sort by category name for readability.
+
+# Print the summary table to the console so you can review the results.
+print(summary_stats)
+
+
+# --- Step 4: Visualize the average amount by category (bar chart) ---
+
+# Build a bar chart using ggplot2 to show average transaction amounts per category.
+avg_amount_plot <- ggplot(summary_stats, aes(x = category, y = avg_amount, fill = category)) +
+  geom_bar(stat = "identity") +                                  # Use actual values (not counts) for bar heights.
+  labs(
+    title = "Average Transaction Amounts by Category (Sample)",  # Chart title for context.
+    x = "Category",                                              # X-axis label.
+    y = "Average Amount"                                         # Y-axis label.
+  ) +
+  theme_minimal() +                                              # Clean, professional theme.
+  theme(legend.position = "none")                                # Hide legend (colors match categories on x-axis).
+
+# Display the chart in the RStudio plot pane.
+print(avg_amount_plot)
+
+
+
+
+
+
+
+
+
